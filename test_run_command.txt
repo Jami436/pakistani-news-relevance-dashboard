@@ -1,3 +1,0 @@
-# In the root directory run:
-
-python -m docs.tests.test_crud

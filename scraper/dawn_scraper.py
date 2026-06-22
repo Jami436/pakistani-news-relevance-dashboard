@@ -1,57 +1,78 @@
+import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 from backend.crud import insert_article
+from scraper.utils import download_image
 
+url = "https://www.dawn.com"
 
-def scrape_dawn():
+response = requests.get(url)
 
-    url = "https://www.dawn.com"
+soup = BeautifulSoup(response.text, "html.parser")
 
-    response = requests.get(url)
+articles = []
 
-    if response.status_code != 200:
-        print("Failed to fetch Dawn")
-        return []
+for article in soup.find_all("article", class_="story"):
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    link = article.find("a", href=True)
 
-    articles = []
+    if not link:
+        continue
 
-    for article in soup.find_all("article", class_="story"):
+    headline = (
+        link.get("title")
+        or link.get("alt")
+        or link.get_text(strip=True)
+    )
 
-        link = article.find("a", href=True)
+    article_url = link.get("href")
 
-        if not link:
-            continue
+    image = article.find("img")
+    image_url = image.get("src") if image else None
 
-        headline = (
-            link.get("title")
-            or link.get("alt")
-            or link.get_text(strip=True)
+    if not headline:
+        continue
+
+    image_path = None
+
+    if image_url:
+        image_path = download_image(
+            image_url,
+            f"article_{len(articles)+1}.webp"
         )
 
-        article_url = link.get("href")
+    articles.append({
+        "source": "Dawn",
+        "headline": headline,
+        "article_url": article_url,
+        "image_url": image_url,
+        "image_path": image_path
+    })
 
-        image = article.find("img")
-        image_url = image.get("src") if image else None
+article_id = article_url.split("/")[-1]
 
-        if not headline:
-            continue
+image_path = download_image(
+    image_url,
+    f"{article_id}.webp"
+)
 
-        article_data = {
-            "headline": headline,
-            "article_url": article_url,
-            "image_url": image_url
-        }
+for article in articles[:10]:
+    print(article)
 
-        articles.append(article_data)
+for article in articles:
+    insert_article(article)
 
-        insert_article(article_data)
+df = pd.DataFrame(articles)
 
-    print(f"Dawn: {len(articles)} articles processed")
+df.to_csv(
+    "data/raw/dawn_articles.csv",
+    index=False,
+    encoding="utf-8"
+)
 
-    return articles
+print("CSV file created successfully.")
 
+print(f"\nTotal Articles Found: {len(articles)}")
 
-if __name__ == "__main__":
-    scrape_dawn()
+print(f"\nTotal Articles Found: {len(articles)}")
+

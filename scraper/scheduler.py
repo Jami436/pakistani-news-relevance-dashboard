@@ -1,23 +1,36 @@
 import time
 import schedule
 
-from dawn_scraper import scraper_dawn
-from ummat_scraper import scraper_ummat
+from scraper.dawn_scraper import scrape_dawn
+from scraper.ummat_scraper import scrape_ummat
 
-def run_pipeline():
-    print("Starting scheduling pipeline...")
 
-    scraper_dawn()
-    scraper_ummat()
+def scrape_all():
 
-    print("Scraping complete!")
+    print("\n========== Starting Scraping ==========\n")
 
-# run every 6 hours
-schedule.every(1).minutes.do(run_pipeline)
+    try:
+        scrape_dawn()
+        print("\nDawn scraping completed.\n")
+
+    except Exception as e:
+        print(f"\nDawn scraper failed: {e}\n")
+
+    try:
+        scrape_ummat()
+        print("\nUmmat scraping completed.\n")
+
+    except Exception as e:
+        print(f"\nUmmat scraper failed: {e}\n")
+
+    print("========== Scraping Finished ==========\n")
+
+
+schedule.every(6).hours.do(scrape_all)
 
 print("Scheduler started...")
 
-run_pipeline()
+scrape_all()
 
 while True:
     schedule.run_pending()
